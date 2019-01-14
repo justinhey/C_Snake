@@ -15,7 +15,7 @@
 struct position food;		/* food position */
 Snake_Node *head, *tail;	/* double linked list's head and tail */
 int x_dir = 1, y_dir = 0;	/* init dirction of the snake moving */
-int ttm = 5, ttg = 5;			/* two timers defined to control speed */
+int ttm = 5, ttg = 5;		/* two timers defined to control speed */
 
 
 
@@ -78,6 +78,19 @@ void Food_Disp()
 	food.y_pos = rand() % (LINES - TOP_ROW - 2) + TOP_ROW + 1;
 	mvaddch(food.y_pos, food.x_pos, FOOD_SYMBOL);/* display the food */
 	refresh();
+}
+
+/* 
+ * Function: DLL_Snake_Create()
+ * Usage: create double linked list, and display the snake first node
+ * Return: none
+ */
+void DLL_Snake_Create()
+{
+	Snake_Node *temp = (Snake_Node *)malloc(sizeof(Snake_Node));
+	head = (Snake_Node *)malloc(sizeof(Snake_Node));
+	tail = (Snake_Node *)malloc(sizeof(Snake_Node));
+
 }
 
 
