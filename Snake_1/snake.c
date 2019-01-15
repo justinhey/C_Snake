@@ -80,7 +80,7 @@ void Food_Disp()
 	refresh();
 }
 
-/* 
+/*
  * Function: DLL_Snake_Create()
  * Usage: create double linked list, and display the snake first node
  * Return: none
@@ -90,8 +90,22 @@ void DLL_Snake_Create()
 	Snake_Node *temp = (Snake_Node *)malloc(sizeof(Snake_Node));
 	head = (Snake_Node *)malloc(sizeof(Snake_Node));
 	tail = (Snake_Node *)malloc(sizeof(Snake_Node));
-
+	if (temp == NULL || head == NULL || tail == NULL)
+	{
+		perror("malloc");
+	}
+	temp->x_pos = 5;
+	temp->y_pos = 10;
+	head->prev = NULL;
+	tail->next = NULL;
+	head->next = temp;
+	temp->next = tail;
+	tail->prev = temp;
+	temp->prev = head;
+	mvaddch(temp->y_pos,temp->x_pos,SNAKE_SYMBOL);
+	refresh();
 }
+
 
 
 
