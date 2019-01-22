@@ -102,38 +102,38 @@ void DLL_Snake_Create()
 	temp->next = tail;
 	tail->prev = temp;
 	temp->prev = head;
-	mvaddch(temp->y_pos,temp->x_pos,SNAKE_SYMBOL);
+	mvaddch(temp->y_pos, temp->x_pos, SNAKE_SYMBOL);
 	refresh();
 }
 
 /*
  *  接下来就是蛇的移动问题，这个是核心部分以及最困难的设计部分了，我采用的是蛇用双向链表的结构来构造出来，
-    分别有一个head 和tail指针，用来添加和删除元素。这里若要实现移动的话（未碰到食物前），就是在链表的
+	分别有一个head 和tail指针，用来添加和删除元素。这里若要实现移动的话（未碰到食物前），就是在链表的
 	头部（head的下一个）插入一个新元素，记录下此时的坐标，用mvaddch(y,x,c)函数添加蛇的图形'@',与此同时，
 	在链表尾部（tail的前一个）删除一个节点，同时这里的坐标用mvaddch(y,x, ' ')添加了' '空白字符，实现删除
 	效果，最后加上refresh(). 这样就可以看到蛇在“移动”了。当然，要是碰到食物的话，尾部节点处就不用删除，
 	达到增长长度的效果。
-    那么，接下来的问题是：如何触发蛇的移动呢？如何实现均匀移动以及通过按键 ‘f’ 或 's' 改变运动速度呢？
+	那么，接下来的问题是：如何触发蛇的移动呢？如何实现均匀移动以及通过按键 ‘f’ 或 's' 改变运动速度呢？
 	这里我采用的是信号计时中断调用的函数  signal(SIGALRM, Snake_Move) 和 间隔计数器 来实现，通过产生相同
 	间隔的时间片段来不断地调用Snake_Move()函数来执行相应的功能。加减速的功能是通过设定其他变量ttm, ttg来
 	实现再此基本计数器上面再次分频的效果来加减速，ttm, ttg 越大，减速越明显，反之则相反效果。  具体的间隔
 	计数器的函数设计见下：（参考了以上所提书本上的函数）
  */
- 
-/* 
- * Function: set_ticker(number_of_milliseconds)
- * Usage: arrange for interval timer to issue SIGALRM's at regular intervals
- * Return: -1 on error, 0 for ok
- * arg in milliseconds, converted into whole seconds and microseconds
- * note: set_ticker(0) turns off ticker
- */
+
+ /*
+  * Function: set_ticker(number_of_milliseconds)
+  * Usage: arrange for interval timer to issue SIGALRM's at regular intervals
+  * Return: -1 on error, 0 for ok
+  * arg in milliseconds, converted into whole seconds and microseconds
+  * note: set_ticker(0) turns off ticker
+  */
 int set_ticker(int n_msecs)
 {
 	struct itimerval new_timeset;
 	long n_sec, n_usecs;
 
-	n_sec = n_msecs/1000;
-	n_usecs = (n_msecs%1000) * 1000L;
+	n_sec = n_msecs / 1000;
+	n_usecs = (n_msecs % 1000) * 1000L;
 
 	// 间隔
 	new_timeset.it_interval.tv_sec = n_sec;
@@ -142,19 +142,71 @@ int set_ticker(int n_msecs)
 	new_timeset.it_value.tv_sec = n_sec;
 	new_timeset.it_value.tv_usec = n_usecs;
 
-	return setitimer(ITIMER_REAL, &new_timeset,NULL);
+	return setitimer(ITIMER_REAL, &new_timeset, NULL);
 }
 
 
-void Snake_Move() 
+void Snake_Move()
 {
 	static int length = 1;	/* length of snake */
 	int Length_Flag = 0;	/* default snake's length no change */
 	int moved = 0;
 
 	// SIG_ALRM 警告钟, SIG_IGN 屏蔽该信号
-	signal(SIG_ALRM,SIG_IGN);
+	signal(SIG_ALRM, SIG_IGN);
 
+	/*
+		judge if the snake crash the wall
+		屏幕左上角是原点，向右是x正向，向下是y轴正向
+	*/
+	if ((head->next->x_pos == RIGHT_EDGE - 1 && x_dir == 1)
+		|| (head->next->x_pos == LEFT_EDGE + 1 && x_dir == -1)
+		|| (head->next->y_pos == TOP_ROW + 1 && y_dir = -1)
+		|| (head->next->y_pos == BOT_ROW - 1 && y_dir == 1))
+	{
+		gameover(1);
+	}
+	/*
+		judge if the snake crash itself
+		inch() 函数和相关联的 mvinch() 函数允许你探测屏幕的内容
+	*/
+	if (mvinch(head->next->y_pos + y_dir, head->next->x_pos + x_dir) == '@')
+	{
+		gameover(2);
+	}
+	// 信号每收到一次这个函数就执行一次，ttg-- 之后值是1 蛇才会动
+	if (ttm > 0 && ttg-- == 1)
+	{
+		/* snake moves */
+		DLL_Snake_Insert(head->next->x_pos + x_dir, head->next->y_pos + y_dir);
+		ttg = ttm;	/* reset */
+		moved = 1;	/* snake can move */
+	}
+	if (moved)
+	{
+		/* snake eat the food */
+		if (head->next->x_pos == food.x_pos && head->next->y_pos == food.y_pos)
+		{
+			Length_Flag = 1;
+			length++;
+			/* Mission Complete */
+			if (length >= MAX_NODE)
+			{
+				gameover(0);
+			}
+			/* reset display the food randomly */
+			Food_Disp();
+		}
+		if (Length_Flag == 0)
+		{
+			/* delete the tail->prev node */
+			mvaddch(tail->prev->y_pos, tail->prev->x_pos);
+			DLL_Snake_Delete_Node();
+		}
+		mvaddch(head->next->y_pos, head->next->x_pos, SNAKE_SYMBOL);
+		refresh();
+	}
+	signal(SIGALRM, Snake_Move);
 }
 
 
