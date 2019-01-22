@@ -21,8 +21,13 @@ int ttm = 5, ttg = 5;		/* two timers defined to control speed */
 
 void main(void)
 {
-
-
+	Init_Disp();
+	Food_Disp();
+	DLL_Snake_Create();
+	signal(SIGALRM, Snake_Move);
+	set_ticker(DFL_SPEED);
+	Key_Ctrl();
+	Wrap_Up();
 }
 
 
@@ -207,6 +212,159 @@ void Snake_Move()
 		refresh();
 	}
 	signal(SIGALRM, Snake_Move);
+}
+
+
+/* Function: Wrap_Up()
+ * Usage: turn off the curses
+ * Return: none
+ */
+void Wrap_Up()
+{
+	set_ticker(0);		/* turn off the timer */
+	getchar();
+	endwin();
+	exit(0);
+}
+
+
+/* Function: Key_Ctrl()
+ * Usage: using keyboard to control snake action; 'f' means speed up,
+ * 's' means speed down, 'q' means quit, navigation key control direction.
+ * Return: none
+ */
+void Key_Ctrl()
+{
+	int c;
+	keypad(stdscr, true);			/* use little keyboard Navigation Key */
+	while (c = getch(), c != 'q')
+	{
+		if (c == 'f')
+		{
+			if (ttm == 1) {
+				continue;
+			}
+			ttm--;
+		}
+		else if (c == 's')
+		{
+			if (ttm == 8) {
+				continue;
+			}
+			ttm++;
+		}
+
+		if (c == KEY_LEFT)
+		{
+			// 只有蛇头没有蛇身时tail->prev->prev就是head节点
+			if (tail->prev->prev->prev != NULL && x_dir == 1 & y_dir == 0) {
+				continue; // it can't turn reverse when snake have length
+			}
+			x_dir = -1;
+			y_dir = 0;
+		}
+		else if (c == KEY_RIGHT)
+		{
+			if (tail->prev->prev->prev != NULL && x_dir == -1 && y_dir == 0)
+			{
+				continue;
+			}
+			x_dir = 1;
+			y_dir = 0;
+		}
+		else if (c == KEY_UP)
+		{
+			if (tail->prev->prev->prev != NULL && x_dir == 0 && y_dir == 1)
+			{
+				continue;
+			}
+			x_dir = 0;
+			y_dir = -1;
+
+		}
+		else if (c == KEY_DOWN)
+		{
+			if (tail->prev->prev->prev != NULL && x_dir == 0 && y_dir == -1)
+			{
+				continue;
+			}
+			x_dir = 0;
+			y_dir = 1;
+		}
+	}
+}
+
+/* Function: DLL_Snake_Insert(int x, int y)
+ * Usage: Insert node in the snake.
+ * Return: none
+ */
+void Dll_Snake_Insert(int x, int y)
+{
+	Snake_Node *temp = (Snake_Node *)malloc(sizeof(Snake_Node));
+	if (temp == NULL)
+	{
+		perror("malloc");
+	}
+	temp->x_pos = x;
+	temp->y_pos = y;
+	temp->prev = head->next->prev;
+	head->next->prev = temp;
+	temp->next = head->next;
+	head->next = temp;
+}
+
+
+/* Function: gameover(int n)
+ * Usage: gameover(0) means Mission Completes; gameover(1) means crashing
+ * the wall; gameover(2) means crash itself.
+ * Return: none
+ */
+void gameover(int n) {
+	switch (n)
+	{
+		case 0:
+			mvaddstr(LINES / 2, COLS / 3 - 4, "Mission Completes,press any key to exit.\n");
+			break;
+		case 1:
+			mvaddstr(LINES / 2, COLS / 3 - 4, "Game Over, crash the wall,press any key to exit.\n");
+			break;
+		case 2:
+			mvaddstr(LINES / 2, COLS / 3 - 4, "Game Over, crash yourself,press any key to exit.\n");
+		default:
+			break;
+	}
+	refresh();
+	/* delete the whole double linked list */
+	DLL_Snake_Delete();
+	Wrap_Up();
+}
+
+/* Function: DLL_Snake_Delete_Node()
+ * Usage: delete a tail node, not the whole linked list
+ * Return: none
+ */
+void DLL_Snake_Delete_Node()
+{
+	Snake_Node *temp;
+	temp = tail->prev;
+	tail->prev = tail->prev->prev;
+	temp->prev->next = tail;
+	free(temp);
+}
+
+/* Function: DLL_Snake_Delete()
+ * Usage: delete the whole double linked list
+ * Return: none
+ */
+void Dll_Snake_Delete()
+{
+	while (head->next != tail)
+	{
+		DLL_Snake_Delete_Node();
+	}
+	head->next = tail->prev = NULL;
+	free(head);
+	free(tail);
 }
 
 
